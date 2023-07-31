@@ -1,8 +1,14 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+This is a [Next.js 13 app directory style](https://nextjs.org/) template bootstrapped with [typescript](), tailwindcss,
+mongodb, and next-auth for authentication
+
 
 ## Getting Started
+First, create .env.local and fill out the environment variable values listed in .env.example
+```bash
+cp ./.env.example ./.env.local
+```
 
-First, run the development server:
+Second, run the development server:
 
 ```bash
 npm run dev
@@ -14,18 +20,41 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Authentication
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+This templates uses nextAuth to set up authentication, and uses getServerSession in session.ts
+to use in server components
 
-## Learn More
+### pages
 
-To learn more about Next.js, take a look at the following resources:
+There is two private pages, and one public page that demostrates authentication in action:
+1. /finanical is private and redirects to login if user isn't logged in
+2. /profile is private and redirects to login if user isn't logged in
+3. /auth/signin is public and allows user to sign in, and if user is redrected from certain private pages,
+it will redirect user back to that page after signing in via query param
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## next auth
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Next auth is set up by three files:
+
+### lib/auth.ts
+
+sets up the authOptions object, which is the config for authentication, such as 
+1. functions to execute when certain actions happen, like when user sign up and we can save them to our database
+2. jwt timeout, jwt's decode and encode method
+
+### mongodb.ts
+
+sets up the mongodb connection, which when used with auth adapter, next auth automatically saves to mongodb user's collection
+
+### app/api/auth/[...nextauth]/route.ts
+
+sets up the backend points for nextauth
+
+### lib/session.ts
+
+setsup getCurrentUser() to use in server components, which uses getServerSession
+
 
 ## Deploy on Vercel
 
