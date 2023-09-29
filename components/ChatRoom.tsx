@@ -1,25 +1,15 @@
 'use client';
 import firebaseDb from '@/lib/firebase';
 import { useCollection } from 'react-firebase-hooks/firestore';
-import { collection } from 'firebase/firestore';
+import { collection, limit, query } from 'firebase/firestore';
 import React from 'react'
 
 const ChatRoom = () => {
     const messagesRef = collection(firebaseDb, 'messages');
-
-    // React.useEffect(() => {
-    //     async function getMessages() {
-    //         const messages = await getDocs(messagesRef);
-    //         console.log("messages", messages.docs);
-    //     }
-    //     getMessages();
-    // }, []);
-
-    // const q = query(messagesRef, limit(3));
-
+    const q = query(messagesRef, limit(1));
     const [value, loading, error] =
-        useCollection(messagesRef);
-    console.log("values", value);
+        useCollection(q);
+
     return (
         <div>
             <p>

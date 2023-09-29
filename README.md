@@ -106,6 +106,45 @@ to add test there are three ways:
 
 npm run test
 
+### add firebase for real time - firestore
+to add firebase:
+1. create firebase.ts
+    ```
+    import { initializeApp } from 'firebase/app';
+    import { getFirestore } from 'firebase/firestore';
+    // Follow this pattern to import other Firebase services
+    // import { } from 'firebase/<service>';
+
+    // TODO: Replace the following with your app's Firebase project configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyBVwX7fesAmWK4zIwI4nKDpcigdlf2ew-o",
+        authDomain: "nextjs-template-chat-app.firebaseapp.com",
+        projectId: "nextjs-template-chat-app",
+        storageBucket: "nextjs-template-chat-app.appspot.com",
+        messagingSenderId: "47307729756",
+        appId: "1:47307729756:web:8a7907c42c2f9c89846f99",
+        measurementId: "G-K99J6KQQ9H"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const firebaseDb = getFirestore(app);
+
+    export default firebaseDb
+    ```
+    note you shouldn't import from lite if you want realtime functionalities
+2. and to set refs, firebase hooks, and query see ChatRoom.tsx
+    refs: https://firebase.google.com/docs/firestore/data-model#web-modular-api_3
+    hooks: https://github.com/CSFrequency/react-firebase-hooks/blob/master/firestore/README.md
+    query to use limit and order and where and other filters: https://firebase.google.com/docs/firestore/query-data/order-limit-data#web-modular-api
+    getData (actually calling refs):
+    https://firebase.google.com/docs/firestore/query-data/get-data
+    real time update without hooks:
+    https://firebase.google.com/docs/firestore/query-data/listen
+    data modelling: https://firebase.google.com/docs/firestore/data-model#web-modular-api_3
+    overall tutorial: https://firebase.google.com/docs/firestore/quickstart
+
+
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
