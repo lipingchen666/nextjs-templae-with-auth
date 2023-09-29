@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/session';
 import React from 'react'
 import { authOptions } from '@/lib/auth';
 import { getAllUsers, getOneUserById } from '@/lib/daos/userDao';
+import ChatRoom from '@/components/ChatRoom';
 
 const page = async ({ params }: { params: { userId: string } }) => {
   const user = await getCurrentUser();
@@ -18,6 +19,7 @@ const page = async ({ params }: { params: { userId: string } }) => {
             <h1 className='text-2xl'>
                 Authorized User Page {params.userId}
             </h1>
+            <ChatRoom />
         </div>
     </div>
   )
