@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getDatabase } from "firebase/database";
 // Follow this pattern to import other Firebase services
 // import { } from 'firebase/<service>';
 
@@ -11,10 +12,10 @@ const firebaseConfig = {
     storageBucket: "nextjs-template-chat-app.appspot.com",
     messagingSenderId: "47307729756",
     appId: "1:47307729756:web:8a7907c42c2f9c89846f99",
-    measurementId: "G-K99J6KQQ9H"
+    measurementId: "G-K99J6KQQ9H",
+    databaseURL: "https://nextjs-template-chat-app-default-rtdb.firebaseio.com",
 };
 
 const app = initializeApp(firebaseConfig);
-const firebaseDb = getFirestore(app);
-
-export default firebaseDb
+export const firebaseDb = getFirestore(app);
+export const firebaseRealTimeDb = getDatabase(app);
