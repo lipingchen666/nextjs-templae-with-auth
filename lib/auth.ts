@@ -1,6 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
+import OktaProvider from "next-auth/providers/okta";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import bcrypt from "bcrypt-ts";
@@ -18,6 +19,11 @@ export const authOptions: NextAuthOptions  = {
       clientId: process.env.GOOGLE_ID || "",
       clientSecret: process.env.GOOGLE_SECRET || "",
     }),
+    OktaProvider({
+      clientId: process.env.OKTA_CLIENT_ID || "",
+      clientSecret: process.env.OKTA_CLIENT_SECRET || "",
+      issuer: process.env.OKTA_DOMAIN || ""
+    })
     // CredentialsProvider({
     //   // The name to display on the sign in form (e.g. "Sign in with...")
     //   name: "Credentials",
