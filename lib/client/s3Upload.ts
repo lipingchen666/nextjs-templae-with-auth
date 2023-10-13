@@ -51,9 +51,7 @@ class s3Upload {
                     bucket,
                     key,
                     uploadId,
-                    multipartUpload: {
-                        Parts: uploadPartsArray
-                    }
+                    parts: uploadPartsArray
                 },
             })
             console.log(completeUploadResp.data, 'upload response complete');

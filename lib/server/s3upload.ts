@@ -1,3 +1,5 @@
+import { Container, Service } from 'typedi';
+import "reflect-metadata";
 import {
     CreateMultipartUploadCommand,
     UploadPartCommand,
@@ -7,8 +9,10 @@ import {
     CompletedMultipartUpload,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { MultiPartUpload, Part, TYPES } from "./types/upload-manager";
 
-class s3Upload {
+@Service()
+class s3Upload implements MultiPartUpload {
     s3Client: S3Client;
 
     constructor(s3Client: S3Client) {
@@ -56,17 +60,22 @@ class s3Upload {
         bucket: string,
         key: string,
         uploadId: string,
-        multipartUpload: CompletedMultipartUpload
+        parts: Part[]
     ) {
-        console.log("multipartUpload", multipartUpload.Parts)
-        return await this.s3Client.send(
+        console.log("multipartUpload", parts);
+        const data = await this.s3Client.send(
             new CompleteMultipartUploadCommand({
                 Bucket: bucket,
                 Key: key,
                 UploadId: uploadId,
-                MultipartUpload: multipartUpload
+                MultipartUpload: {
+                    Parts: parts
+                }
             }),
         );
+        
+        console.log("data.location", data.Location);
+        return data.Location;
     }
 }
 
