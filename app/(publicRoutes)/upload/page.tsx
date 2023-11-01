@@ -13,7 +13,11 @@ const page = () => {
         e.preventDefault();
         if (file) {
             const uploader = new s3Upload();
-            await uploader.multiPartUpload(file);
+            //await uploader.multiPartUpload(file);
+            await uploader.uploadFile(file, {
+                bucket: 'nextjs-template-bucket',
+                key: file.name,
+            }, (percent) => { console.log(percent)} )
         }
     }
 
