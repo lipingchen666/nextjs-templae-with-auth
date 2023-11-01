@@ -2,7 +2,8 @@ import { type NextRequest } from 'next/server';
 import s3Upload from "@/lib/server/s3upload";
 import { S3Client } from "@aws-sdk/client-s3";
 import { Container } from '@/lib/typedi.config';
-// import { myContainer } from '@/inversify.config';
+import { myContainer } from '@/inversify.config';
+import { MultiPartUpload, TYPES } from '@/lib/server/types/upload-manager';
 // import { MultiPartUpload, TYPES } from '@/lib/server/types/upload-manager';
 
 export async function POST(request: NextRequest) {
@@ -13,8 +14,8 @@ export async function POST(request: NextRequest) {
     //         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
     //     }
     // }));
-    const multiUploader = Container.get(s3Upload);
-    
+    // const multiUploader = Container.get(s3Upload);
+    const multiUploader = myContainer.get<MultiPartUpload>(TYPES.MultiPartUpload);
     const body = await request.json();
     console.log("body", body);
     const bucket = body.params.bucket|| "";

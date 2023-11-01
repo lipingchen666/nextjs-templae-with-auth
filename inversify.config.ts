@@ -14,8 +14,7 @@ const s3Client = new S3Client({
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
     }
 });
-decorate(injectable(), S3Client);
-// myContainer.bind<S3Client>(TYPES.S3Client).toConstantValue(s3Client);
+myContainer.bind<S3Client>(TYPES.S3Client).toConstantValue(s3Client);
 myContainer.bind<MultiPartUpload>(TYPES.MultiPartUpload).to(s3Upload);
 
 

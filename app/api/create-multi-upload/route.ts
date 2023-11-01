@@ -1,8 +1,6 @@
-// import { myContainer } from "@/inversify.config";
-import s3Upload from "@/lib/server/s3upload"
+
+import { myContainer } from "@/inversify.config";
 import { MultiPartUpload, TYPES } from "@/lib/server/types/upload-manager";
-import { Container } from "@/lib/typedi.config";
-import { S3Client } from "@aws-sdk/client-s3"
 import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -14,7 +12,7 @@ export async function GET(request: NextRequest) {
     //     }
     // }));
     
-    const multiUploader = Container.get(s3Upload);
+    const multiUploader = myContainer.get<MultiPartUpload>(TYPES.MultiPartUpload);
     const searchParams = request.nextUrl.searchParams;
     const bucket = searchParams.get('bucket') || "";
     const key = searchParams.get('key') || "";

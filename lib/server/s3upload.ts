@@ -10,12 +10,13 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { MultiPartUpload, Part, TYPES } from "./types/upload-manager";
+import { inject, injectable } from 'inversify';
 
-@Service()
+@injectable()
 class s3Upload implements MultiPartUpload {
     s3Client: S3Client;
 
-    constructor(s3Client: S3Client) {
+    constructor(@inject(TYPES.S3Client) s3Client: S3Client) {
         this.s3Client = s3Client;
     }
 
@@ -73,7 +74,7 @@ class s3Upload implements MultiPartUpload {
                 }
             }),
         );
-        
+
         console.log("data.location", data.Location);
         return data.Location;
     }
