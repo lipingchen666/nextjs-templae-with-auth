@@ -15,3 +15,7 @@ export type MultiUploadClientErrorName =
     | 'COMPLETE_MULTI_UPLOADS_FAILED'
 
 export class MultiUploadClientError extends ErrorBase<MultiUploadClientErrorName> {};
+
+export const TYPES = {
+    UploadClient: Symbol.for("UploadClient"),
+}

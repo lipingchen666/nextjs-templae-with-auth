@@ -4,6 +4,7 @@ import { Part } from '@aws-sdk/client-s3';
 import { injectable, inject } from "inversify";
 import "reflect-metadata";
 
+@injectable()
 class s3Upload implements UploadClient<S3Destination> {
     async uploadFile(file: File, destination: S3Destination, callback: (percent: number) => void): Promise<String> {
         const uploadId = await this.createMultiUpload(destination);
