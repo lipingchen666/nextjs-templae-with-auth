@@ -1,4 +1,3 @@
-import { Container, Service } from 'typedi';
 import "reflect-metadata";
 import {
     CreateMultipartUploadCommand,
