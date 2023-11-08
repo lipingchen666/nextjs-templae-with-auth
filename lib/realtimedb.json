@@ -1,0 +1,10 @@
+{
+    "messages": {
+        "one": {
+            "text": "real time db message 1"
+        },
+        "two": {
+            "text": "real time db message 2"
+        }
+    }
+}
