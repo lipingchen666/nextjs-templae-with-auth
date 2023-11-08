@@ -13,7 +13,6 @@ const Uploader = () => {
     const onSubmit = async (e) => {
         e.preventDefault();
         if (file) {
-            // const uploader = new s3Upload();
             await uploadClient.uploadFile(file, {
                 bucket: 'nextjs-template-bucket',
                 key: file.name,
