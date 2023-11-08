@@ -17,13 +17,13 @@ import {
     StatusUpdateInterval
 } from "@aws-sdk/client-mediaconvert";
 import { inject, injectable } from "inversify";
-import { EncodingManager } from "./types/encoding-manager";
+import { EncodingManager, TYPES } from "./types/encoding-manager";
 
 @injectable()
 class AwsEncode implements EncodingManager {
     mediaConvertClient: MediaConvertClient;
 
-    constructor(mediaConvertClient: MediaConvertClient) {
+    constructor(@inject(TYPES.MediaConvertClient) mediaConvertClient: MediaConvertClient) {
         this.mediaConvertClient = mediaConvertClient;
     }
 
@@ -126,7 +126,7 @@ class AwsEncode implements EncodingManager {
             "Priority": 0,
             "HopDestinations": []
         }
-        
+
         const command = new CreateJobCommand(input);
         const response = await this.mediaConvertClient.send(command);
 
