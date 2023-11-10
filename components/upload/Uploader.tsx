@@ -2,8 +2,8 @@ import React from 'react'
 import { UploaderContext } from '../context/UploadContext';
 
 const Uploader = () => {
-    const [file, setFile] = React.useState<File | null>(null);
-    const { uploadClient } = React.useContext(UploaderContext);
+    // const [file, setFile] = React.useState<File | null>(null);
+    const { uploadClient, file, setFile } = React.useContext(UploaderContext);
 
     const onInputChange = (e) => {
         const file = e.target.files && e.target.files[0];
