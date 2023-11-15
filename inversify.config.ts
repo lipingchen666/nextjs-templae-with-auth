@@ -8,6 +8,8 @@ import { S3Destination, UploadClient, TYPES as CLIENT_TYPES } from "./lib/client
 import { TYPES as ENCODING_TYPES } from "./lib/server/types/encoding-manager";
 import { MediaConvertClient } from "@aws-sdk/client-mediaconvert";
 import AwsEncode from "./lib/server/encoder/aws-encoder/AwsEncode";
+import { cdnManager, TYPES as CDN_TYPES } from "./lib/server/types/cdn-manager";
+import CloudFrontCdn from "./lib/server/cdn/cloudfront-cdn/CloudFrontCdn";
 
 //SERVER
 const myContainer = new Container();
@@ -31,6 +33,11 @@ myContainer.bind<MediaConvertClient>(ENCODING_TYPES.MediaConvertClient).toConsta
 
 myContainer.bind<MultiPartUpload>(TYPES.MultiPartUpload).to(s3Upload);
 myContainer.bind<MediaConvertClient>(ENCODING_TYPES.EncodingManager).to(AwsEncode);
+
+myContainer.bind(CDN_TYPES.domain).toConstantValue(process.env.CLOUD_FRONT_DOMAIN);
+myContainer.bind(CDN_TYPES.keyPairId).toConstantValue(process.env.CLOUD_FRONT_KEY_PAIR_ID);
+myContainer.bind(CDN_TYPES.privateKey).toConstantValue(process.env.CLOUD_FRONT_PRIVATE_KEY);
+myContainer.bind<cdnManager>(CDN_TYPES.cdnManager).to(CloudFrontCdn);
 
 //CLIENT
 myContainer.bind<UploadClient<S3Destination>>(CLIENT_TYPES.UploadClient).to(S3UploadClient);
