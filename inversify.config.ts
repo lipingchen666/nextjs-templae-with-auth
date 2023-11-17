@@ -1,6 +1,6 @@
 import { Container, decorate, injectable } from "inversify";
 require("reflect-metadata");
-import { MultiPartUpload, TYPES } from "./lib/server/types/upload-manager";
+import { MultiPartUpload, SinglePartUpload, TYPES } from "./lib/server/types/upload-manager";
 import s3Upload from "./lib/server/s3upload";
 import { default as S3UploadClient } from "./lib/client/s3Upload";
 import { S3Client } from "@aws-sdk/client-s3";
@@ -32,6 +32,8 @@ myContainer.bind<S3Client>(TYPES.S3Client).toConstantValue(s3Client);
 myContainer.bind<MediaConvertClient>(ENCODING_TYPES.MediaConvertClient).toConstantValue(mediaConvertClient);
 
 myContainer.bind<MultiPartUpload>(TYPES.MultiPartUpload).to(s3Upload);
+myContainer.bind<SinglePartUpload>(TYPES.SinglePartUpload).to(s3Upload);
+
 myContainer.bind<MediaConvertClient>(ENCODING_TYPES.EncodingManager).to(AwsEncode);
 
 myContainer.bind(CDN_TYPES.domain).toConstantValue(process.env.CLOUD_FRONT_DOMAIN);

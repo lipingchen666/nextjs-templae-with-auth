@@ -6,21 +6,26 @@ import {
     AbortMultipartUploadCommand,
     S3Client,
     CompletedMultipartUpload,
+    PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { MultiPartUpload, Part, TYPES } from "./types/upload-manager";
+import { MultiPartUpload, Part, SinglePartUpload, TYPES } from "./types/upload-manager";
 import { inject, injectable } from 'inversify';
 
 @injectable()
-class s3Upload implements MultiPartUpload {
+class s3Upload implements MultiPartUpload, SinglePartUpload {
     s3Client: S3Client;
 
     constructor(@inject(TYPES.S3Client) s3Client: S3Client) {
         this.s3Client = s3Client;
     }
 
-    async createSingleUpload(bucket: string, key: string) {
+    async getSingleUploadUrl(bucket: string, key: string): Promise<string> {
+        const command = new PutObjectCommand({ Bucket: bucket, Key: key });
 
+        const signedUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 60 * 15 });
+
+        return signedUrl as string;
     }
 
     async createMultiUpload(bucket: string, key: string) {

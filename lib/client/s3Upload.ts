@@ -1,5 +1,5 @@
 import axios, { AxiosProgressEvent } from 'axios';
-import { MultiUploadClientError, S3Destination, UploadClient } from './types/upload-manager';
+import { MultiUploadClientError, S3Destination, SingleUploadClientError, UploadClient } from './types/upload-manager';
 import { Part } from '@aws-sdk/client-s3';
 import { injectable, inject } from "inversify";
 import "reflect-metadata";
@@ -7,6 +7,14 @@ import "reflect-metadata";
 @injectable()
 class s3Upload implements UploadClient<S3Destination> {
     async uploadFile(file: File, destination: S3Destination, callback: (percent: number) => void): Promise<String> {
+        if (file.size >= 100000000) {
+            return this.uploadFileAsMultiParts(file, destination, callback)
+        }
+
+        return this.uploadFileAsOnePart(file, destination, callback);
+    }
+
+    async uploadFileAsMultiParts(file: File, destination: S3Destination, callback: (percent: number) => void): Promise<String> {
         const uploadId = await this.createMultiUpload(destination);
         const fileSize = file.size;
         const CHUNK_SIZE = 10000000; // 10MB
@@ -42,6 +50,20 @@ class s3Upload implements UploadClient<S3Destination> {
         return location;
     }
 
+    async uploadFileAsOnePart(file: File, destination: S3Destination, callback: (percent: number) => void): Promise<String> {
+        const signedUrl = await this.getSingleSignedUrl(destination);
+        const progressArray = [0, 0];
+        const uploadResp = await axios.put(signedUrl, file, {
+            onUploadProgress: e => this.uploadProgressHandler(e, progressArray, 1, callback),
+            headers: {
+                'Content-Type': file.type,
+            },
+        });
+        console.log("uploadResp", uploadResp);
+
+        return uploadResp.data;
+    }
+
     async uploadProgressHandler(progressEvent: AxiosProgressEvent, progressArray: number[], index: number, callback: (percent: number) => void) {
         let progressPercent;
         const eventTotal = progressEvent.total || 0;
@@ -75,6 +97,21 @@ class s3Upload implements UploadClient<S3Destination> {
         }
 
         return uploadId;
+    }
+
+    async getSingleSignedUrl(destination: S3Destination) {
+        const signedUrlResponse = await fetch(`/api/get-single-upload-presigned-url?bucket=${destination.bucket}&key=${destination.key}`);
+
+        const { signedUrl } = await signedUrlResponse.json();
+        console.log("signedUrl", signedUrl);
+        if (!signedUrl) {
+            throw new SingleUploadClientError({
+                name: 'GET_SINGLE_SIGNED_URL_FAILED',
+                message: ''
+            })
+        }
+
+        return signedUrl;
     }
 
     async completeMultiUpload(destination: S3Destination, uploadId: string, parts: Part[]): Promise<string> {

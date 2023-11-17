@@ -9,8 +9,13 @@ export interface MultiPartUpload {
     completeMultiPartUpload(bucket: string, key: string, uploadId: string, parts: Part[]): Promise<string | undefined>;
 }
 
+export interface SinglePartUpload {
+    getSingleUploadUrl(bucket: string, key: string): Promise<string>;
+}
+
 const TYPES = {
     MultiPartUpload: Symbol.for("MultiPartUpload"),
+    SinglePartUpload: Symbol.for("SinglePartUpload"),
     S3Client: Symbol.for("S3Client")
 };
 

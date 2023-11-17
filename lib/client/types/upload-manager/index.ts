@@ -14,7 +14,12 @@ export type MultiUploadClientErrorName =
     | 'GET_PART_SIGNED_URL_FAILED'
     | 'COMPLETE_MULTI_UPLOADS_FAILED'
 
+export type SingleUploadClientErrorName =
+    | 'GET_SINGLE_SIGNED_URL_FAILED'
+
 export class MultiUploadClientError extends ErrorBase<MultiUploadClientErrorName> {};
+
+export class SingleUploadClientError extends ErrorBase<SingleUploadClientErrorName>{}
 
 export const TYPES = {
     UploadClient: Symbol.for("UploadClient"),
