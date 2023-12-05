@@ -4,5 +4,6 @@ export interface EncodingManager {
 
 export const TYPES = {
     EncodingManager: Symbol.for("EncodingManager"),
-    MediaConvertClient: Symbol.for("MediaConvertClient")
+    MediaConvertClient: Symbol.for("MediaConvertClient"),
+    BitMovingClient: Symbol.for("BitMovinClient"),
 }
