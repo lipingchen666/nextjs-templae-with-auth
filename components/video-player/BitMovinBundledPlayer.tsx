@@ -29,7 +29,7 @@ function BitmovinBundledPlayer() {
       url: 'https://nextjs-template-output-bucket.s3.amazonaws.com/cool.vtt'
     }
   }
-  
+
   const playerDiv = useRef(null);
 
   useEffect(() => {

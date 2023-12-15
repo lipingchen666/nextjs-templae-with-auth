@@ -1,7 +1,9 @@
 import "reflect-metadata";
+import Path from 'path'
 import { inject, injectable } from "inversify";
 import { EncodingManager, TYPES } from "../../types/encoding-manager";
 import BitmovinApi, { AacAudioConfiguration, AclEntry, AclPermission, CodecConfiguration, DashManifest, DashManifestDefault, DashManifestDefaultVersion, Encoding, EncodingOutput, Fmp4Muxing, H264VideoConfiguration, HlsManifest, HlsManifestDefault, HlsManifestDefaultVersion, HttpInput, Input, Manifest, ManifestGenerator, ManifestResource, MessageType, MuxingStream, Output, PresetConfiguration, S3Input, S3Output, Sprite, StartEncodingRequest, Status, Stream, StreamInput, StreamSelectionMode, Task } from '@bitmovin/api-sdk';
+import { bitMovinEncodingOptions } from "../../types/encoding-manager/bitMovin";
 
 @injectable()
 class BitMovinEncode implements EncodingManager {
@@ -12,33 +14,39 @@ class BitMovinEncode implements EncodingManager {
     }
 
     async encode(bucket: string = "nextjs-template-bucket", key: string, outPutBucket: string = "s3://nextjs-template-output-bucket", outPutKey: string): Promise<string | undefined> {
-        const encoding = await this.createEncoding(key, 'let us see');
-        const input = await this.createS3Input(bucket);
-        const output = await this.createS3Output(outPutBucket);
+        return await this.encodeHelper(bucket, key, outPutBucket, "", {
+            hasVideo: true,
+            hasAudio: false,
+            videoOptions: [{ width: 1280, height: 720, bitrate: 3000000 }],
+            thumbnailTrack: true
+        })
+        // const encoding = await this.createEncoding(key, 'let us see');
+        // const input = await this.createS3Input(bucket);
+        // const output = await this.createS3Output(outPutBucket);
 
-        const inputFilePath = key;
+        // const inputFilePath = key;
 
-        const videoConfigurations = [
-            await this.createH264VideoConfig(1280, 720, 3000000),
-            // await this.createH264VideoConfig(1280, 720, 4608000),
-            // await this.createH264VideoConfig(1920, 1080, 6144000),
-            // await this.createH264VideoConfig(1920, 1080, 7987200),
-        ];
+        // // const videoConfigurations = [
+        // //     await this.createH264VideoConfig(1280, 720, 3000000),
+        // //     // await this.createH264VideoConfig(1280, 720, 4608000),
+        // //     // await this.createH264VideoConfig(1920, 1080, 6144000),
+        // //     // await this.createH264VideoConfig(1920, 1080, 7987200),
+        // // ];
 
-        for (const videoConfig of videoConfigurations) {
-            const videoStream = await this.createStream(encoding, input, inputFilePath, videoConfig);
-            const spriteConfig = new Sprite({
-                spriteName: "cool.jpg",
-                vttName: "cool.vtt",
-                outputs: [this.buildEncodingOutput(output, `/`)],
-                distance: 10,
-                width: 320
-            });
-            const sprite = await this.bitMovinClient.encoding.encodings.streams.sprites.create(encoding.id || "", videoStream.id || "", spriteConfig);
-            await this.createFmp4Muxing(encoding, output, `video/${videoConfig.bitrate}`, videoStream);
-        }
+        // // for (const videoConfig of videoConfigurations) {
+        // //     const videoStream = await this.createStream(encoding, input, inputFilePath, videoConfig);
+        // //     const spriteConfig = new Sprite({
+        // //         spriteName: "cool.jpg",
+        // //         vttName: "cool.vtt",
+        // //         outputs: [this.buildEncodingOutput(output, `/`)],
+        // //         distance: 2,
+        // //         width: 320
+        // //     });
+        // //     const sprite = await this.bitMovinClient.encoding.encodings.streams.sprites.create(encoding.id || "", videoStream.id || "", spriteConfig);
+        // //     await this.createFmp4Muxing(encoding, output, `video/${videoConfig.bitrate}`, videoStream);
+        // // }
 
-        // Audio - AAC
+        // // Audio - AAC
         // const audioConfigurations = [
         //     await this.createAacAudioConfig(192000),
         //     //  await this.createAacAudioConfig(64000)
@@ -48,6 +56,57 @@ class BitMovinEncode implements EncodingManager {
         //     const audioStream = await this.createStream(encoding, input, inputFilePath, audioConfig);
         //     await this.createFmp4Muxing(encoding, output, `audio/${audioConfig.bitrate}`, audioStream);
         // }
+
+        // const dashManifest = await this.createDefaultDashManifest(encoding, output, '/');
+        // const hlsManifest = await this.createDefaultHlsManifest(encoding, output, '/');
+
+        // const startEncodingRequest = new StartEncodingRequest({
+        //     manifestGenerator: ManifestGenerator.V2,
+        //     vodDashManifests: [this.buildManifestResource(dashManifest)],
+        //     vodHlsManifests: [this.buildManifestResource(hlsManifest)]
+        // });
+
+        // await this.executeEncoding(encoding, startEncodingRequest);
+
+        // return '';
+    }
+
+    async encodeHelper(bucket: string, key: string, outPutBucket: string, outPutKey: string, encodingOptions: bitMovinEncodingOptions = {
+        videoOptions: [{ width: 1280, height: 720, bitrate: 3000000 }],
+        audioOptions: [{ bitrate: 192000 }]
+    }) {
+        const encoding = await this.createEncoding(key, 'let us see');
+        const input = await this.createS3Input(bucket);
+        const output = await this.createS3Output(outPutBucket);
+
+        if (encodingOptions.hasVideo) {
+            const videoConfigurationsPromise = (encodingOptions.videoOptions || []).map(option => {
+                return this.createH264VideoConfig(option.width, option.height, option.bitrate)
+            })
+            const videoConfigurations = await Promise.all(videoConfigurationsPromise);
+
+            for (const videoConfig of videoConfigurations) {
+                const videoStream = await this.createStream(encoding, input, key, videoConfig);
+                if (encodingOptions.thumbnailTrack) {
+                    const filename = Path.parse(key).name
+                    await this.createSprite(encoding.id || '', videoStream.id || '', `${filename}.jpg`, `${filename}.vtt`, output);
+                }
+                await this.createFmp4Muxing(encoding, output, `video/${videoConfig.bitrate}`, videoStream);
+            }
+        }
+
+        if (encodingOptions.hasAudio) {
+            const audioConfigurationsPromise = (encodingOptions.audioOptions || []).map(option => {
+                return this.createAacAudioConfig(option.bitrate)
+            })
+
+            const audioConfigurations = await Promise.all(audioConfigurationsPromise);
+
+            for (const audioConfig of audioConfigurations) {
+                const audioStream = await this.createStream(encoding, input, key, audioConfig);
+                await this.createFmp4Muxing(encoding, output, `audio/${audioConfig.bitrate}`, audioStream);
+            }
+        }
 
         const dashManifest = await this.createDefaultDashManifest(encoding, output, '/');
         const hlsManifest = await this.createDefaultHlsManifest(encoding, output, '/');
@@ -61,6 +120,18 @@ class BitMovinEncode implements EncodingManager {
         await this.executeEncoding(encoding, startEncodingRequest);
 
         return '';
+    }
+
+    async createSprite(encodingId: string, streamId: string, jpgName: string, vttName: string, output: S3Output) {
+        const spriteConfig = new Sprite({
+            spriteName: jpgName,
+            vttName: vttName,
+            outputs: [this.buildEncodingOutput(output, `/`)],
+            distance: 2,
+            width: 320
+        });
+
+        await this.bitMovinClient.encoding.encodings.streams.sprites.create(encodingId || "", streamId || "", spriteConfig);
     }
 
     /**
@@ -142,7 +213,7 @@ class BitMovinEncode implements EncodingManager {
         const s3Output = new S3Output({
             bucketName: bucketName,
             accessKey: process.env.AWS_ACCESS_KEY_ID,
-            secretKey:  process.env.AWS_SECRET_ACCESS_KEY
+            secretKey: process.env.AWS_SECRET_ACCESS_KEY
         });
 
         return this.bitMovinClient.encoding.outputs.s3.create(s3Output);
@@ -281,7 +352,7 @@ class BitMovinEncode implements EncodingManager {
             version: DashManifestDefaultVersion.V1,
             outputs: [this.buildEncodingOutput(output, outputPath)]
         });
-        
+
         return await this.bitMovinClient.encoding.manifests.dash.default.create(dashManifestDefault);
     }
 
@@ -302,7 +373,7 @@ class BitMovinEncode implements EncodingManager {
             manifestId: manifest.id
         });
     }
-    
+
     logTaskErrors(task: Task): void {
         if (task.messages == undefined) {
             return;
