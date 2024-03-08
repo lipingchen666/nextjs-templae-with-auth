@@ -12,6 +12,9 @@ import { cdnManager, TYPES as CDN_TYPES } from "./lib/server/types/cdn-manager";
 import CloudFrontCdn from "./lib/server/cdn/cloudfront-cdn/CloudFrontCdn";
 import BitmovinApi, { ConsoleLogger } from "@bitmovin/api-sdk";
 import BitMovinEncode from "./lib/server/encoder/bitMovin-encoder/bitMovinEncode";
+import { FFprobeWorker } from "ffprobe-wasm";
+import { MediaAnalyzer, TYPES as MediaAnalyzerTypes } from "./lib/client/types/media-analyzer";
+import FFprobeMediaAnalyzer from "./lib/client/FFprobeAnalyzer";
 
 //SERVER
 const myContainer = new Container();
@@ -52,5 +55,10 @@ myContainer.bind<cdnManager>(CDN_TYPES.cdnManager).to(CloudFrontCdn);
 
 //CLIENT
 myContainer.bind<UploadClient<S3Destination>>(CLIENT_TYPES.UploadClient).to(S3UploadClient);
+
+//analyzer
+const ffprobeWorker = new FFprobeWorker();
+myContainer.bind(MediaAnalyzerTypes.FfprobeCient).toConstantValue(ffprobeWorker);
+myContainer.bind<MediaAnalyzer>(MediaAnalyzerTypes.MediaAnalyzer).to(FFprobeMediaAnalyzer);
 
 export { myContainer };

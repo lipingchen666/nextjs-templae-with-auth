@@ -13,20 +13,16 @@ function BitmovinBundledPlayer() {
     ui: false
   };
 
-  // const playerSource = {
-  //   dash: 'https://bitdash-a.akamaihd.net/content/MI201109210084_1/mpds/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.mpd',
-  //   hls: 'https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8',
-  //   poster: 'https://bitdash-a.akamaihd.net/content/MI201109210084_1/poster.jpg',
-  //   thumbnailTrack: {
-  //     url: 'https://cdn.bitmovin.com/content/assets/art-of-motion-dash-hls-progressive/thumbnails/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.vtt'
-  //   }
-  // };
-
   const playerSource = {
-    dash: "https://nextjs-template-output-bucket.s3.amazonaws.com/stream.mpd",
-    hls: "https://nextjs-template-output-bucket.s3.amazonaws.com/master.m3u8",
+    dash: "https://nextjs-template-output-bucket.s3.amazonaws.com/caneloChin/stream.mpd",
+    // hls: "https://nextjs-template-output-bucket.s3.amazonaws.com/master.m3u8",
     thumbnailTrack: {
-      url: 'https://nextjs-template-output-bucket.s3.amazonaws.com/cool.vtt'
+      url: 'https://nextjs-template-output-bucket.s3.amazonaws.com/caneloChin/caneloChin.vtt'
+    },
+    drm: {
+      widevine: {
+        LA_URL: 'https://widevine-dash.ezdrm.com/proxy?pX=647038'
+      }
     }
   }
 

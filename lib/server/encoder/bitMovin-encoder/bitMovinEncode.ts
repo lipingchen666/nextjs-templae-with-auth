@@ -1,25 +1,219 @@
 import "reflect-metadata";
 import Path from 'path'
+import isEmpty from 'lodash';
 import { inject, injectable } from "inversify";
-import { EncodingManager, TYPES } from "../../types/encoding-manager";
-import BitmovinApi, { AacAudioConfiguration, AclEntry, AclPermission, CodecConfiguration, DashManifest, DashManifestDefault, DashManifestDefaultVersion, Encoding, EncodingOutput, Fmp4Muxing, H264VideoConfiguration, HlsManifest, HlsManifestDefault, HlsManifestDefaultVersion, HttpInput, Input, Manifest, ManifestGenerator, ManifestResource, MessageType, MuxingStream, Output, PresetConfiguration, S3Input, S3Output, Sprite, StartEncodingRequest, Status, Stream, StreamInput, StreamSelectionMode, Task } from '@bitmovin/api-sdk';
+import { AudioOption, EncodingManager, TYPES, VideoOption, audioStreamInfo, encodingOption, fileInfo, videoStreamInfo } from "../../types/encoding-manager";
+import BitmovinApi, {
+    AacAudioConfiguration,
+    AclEntry,
+    AclPermission, CencDrm, CencFairPlay, CencPlayReady, CencWidevine,
+    CodecConfiguration,
+    DashManifest,
+    DashManifestDefault,
+    DashManifestDefaultVersion,
+    Encoding,
+    EncodingOutput,
+    Fmp4Muxing,
+    H264VideoConfiguration,
+    HlsManifest,
+    HlsManifestDefault,
+    HlsManifestDefaultVersion,
+    HttpInput,
+    Input,
+    Manifest,
+    ManifestGenerator,
+    ManifestResource,
+    MessageType,
+    Muxing,
+    MuxingStream,
+    Output,
+    PresetConfiguration,
+    S3Input,
+    S3Output,
+    Sprite,
+    StartEncodingRequest,
+    Status,
+    Stream,
+    StreamInput,
+    StreamSelectionMode,
+    Task
+} from '@bitmovin/api-sdk';
 import { bitMovinEncodingOptions } from "../../types/encoding-manager/bitMovin";
 
 @injectable()
 class BitMovinEncode implements EncodingManager {
     bitMovinClient: BitmovinApi;
+    defaultInputBucket: string;
+    defaultOutputBucket: string;
 
     constructor(@inject(TYPES.BitMovingClient) bitMovinClient: BitmovinApi) {
         this.bitMovinClient = bitMovinClient;
+        this.defaultInputBucket = "nextjs-template-bucket";
+        this.defaultOutputBucket = "nextjs-template-output-bucket";
     }
 
-    async encode(bucket: string = "nextjs-template-bucket", key: string, outPutBucket: string = "s3://nextjs-template-output-bucket", outPutKey: string): Promise<string | undefined> {
-        return await this.encodeHelper(bucket, key, outPutBucket, "", {
-            hasVideo: true,
-            hasAudio: false,
-            videoOptions: [{ width: 1280, height: 720, bitrate: 3000000 }],
-            thumbnailTrack: true
+    getVideoEncodingOption(clientVideoOptions: VideoOption[] | undefined, videoInfo: videoStreamInfo | undefined): VideoOption[] {
+        if (!clientVideoOptions || isEmpty(clientVideoOptions)) {
+            return [
+                {
+                    width: videoInfo?.width ? videoInfo.width : 1280,
+                    height: videoInfo?.height ? videoInfo.height : 720,
+                    bitrate: videoInfo?.bitRate ?  videoInfo.bitRate : 3000000 
+                }
+            ]
+        }
+
+        return clientVideoOptions;
+    }
+
+    getAudioEncodingOption(clientAudioOptions: AudioOption[] | undefined, audioInfo: audioStreamInfo | undefined): AudioOption[] {
+        if (!clientAudioOptions || isEmpty(clientAudioOptions)) {
+            return [
+                {
+                    bitrate: audioInfo?.bitRate ? audioInfo?.bitRate : 192000 
+                }
+            ]
+        }
+
+        return clientAudioOptions;
+    }
+
+    generateEncodingOptions(body: any): encodingOption {
+        const sanitizedVideoOptions = this.getVideoEncodingOption(body.videoOptions, body.fileInfo?.videoStream);
+        const sanitizedAudioOptions = this.getAudioEncodingOption(body.audioOptions, body.fileInfo?.audioStream);
+        const sanitizedFileName = body.fileName ? body.fileName : body.fileInfo.fileName;
+        const sanitizedOutputFileName = body.outputFileName ? body.outputFileName : sanitizedFileName;
+        const sanitizedInputBucket = body.inputBucket ? body.inputBucket : this.defaultInputBucket;
+        const sanitizedOutputBucket = body.outputBucket ? body.outputBucket : this.defaultOutputBucket;
+
+        return {
+            fileName: sanitizedFileName,
+            fileInfo: body.fileInfo,
+            inputBucket: sanitizedInputBucket,
+            outputBucket: sanitizedOutputBucket,
+            outputFileName: sanitizedOutputFileName,
+            encodeVideo: !!body.encodeVideo,
+            encodeAudio: !!body.encodeAudio,
+            videoOptions: sanitizedVideoOptions,
+            audioOptions: sanitizedAudioOptions,
+            generateThumbnailTrack: !!body.generateThumbnailTrack,
+            drm: !!body.drm
+        }
+    }
+
+    /**
+     * Adds an MPEG-CENC DRM configuration to the muxing to encrypt its output. Widevine and FairPlay
+     * specific fields will be included into DASH and HLS manifests to enable key retrieval using
+     * either DRM method.
+     *
+     * <p>API endpoint:
+     * https://bitmovin.com/docs/encoding/api-reference/sections/encodings#/Encoding/PostEncodingEncodingsMuxingsFmp4DrmCencByEncodingIdAndMuxingId
+     *
+     * @param encoding The encoding to which the muxing belongs to
+     * @param muxing The muxing to apply the encryption to
+     * @param output The output resource to which the encrypted segments will be written to
+     * @param outputPath The output path where the encrypted segments will be written to
+     */
+    createDrmConfig(encoding: Encoding, muxing: Muxing, output: Output, outputPath: string): Promise<CencDrm> {
+        const widevineDrm = new CencWidevine({
+            pssh: "EhBs3r1AP9LQdwNEYxd2I5sEGgVlemRybUjj3JWbBg=="
+        });
+
+        const playReadyDrm = new CencPlayReady({
+            laUrl: "https://playready.ezdrm.com/cency/preauth.aspx?pX=950E6A"
         })
+        // const cencFairPlay = new CencFairPlay({
+        //     iv: "88ff620764a8eb88147fa13b7e45168c",
+        //     uri: "https://playready.ezdrm.com/cency/preauth.aspx?pX=950E6A",
+        // });
+
+        const cencDrm = new CencDrm({
+            outputs: [this.buildEncodingOutput(output, outputPath)],
+            key: "2e42d3b9ecce677ea2a2a8431d2b5551",
+            kid: "6cdebd403fd2d0770344631776239b04",
+            widevine: widevineDrm,
+            playReady: playReadyDrm
+            // fairPlay: cencFairPlay
+        });
+
+        return this.bitMovinClient.encoding.encodings.muxings.fmp4.drm.cenc.create(encoding.id!, muxing.id!, cencDrm);
+    }
+    // bucket: string = "nextjs-template-bucket", key: string, outPutBucket: string = "s3://nextjs-template-output-bucket", outPutKey: string
+    async encode(encodingOptions: encodingOption): Promise<string | undefined> {
+        const inputBucket = encodingOptions.inputBucket;
+        const inputKey = encodingOptions.fileName;
+        const outputBucket = encodingOptions.outputBucket;
+        const outPutKey = encodingOptions.outputFileName ? encodingOptions.outputFileName : encodingOptions.fileName;
+
+        const encoding = await this.createEncoding(inputKey, `${outPutKey}`);
+        const input = await this.createS3Input(inputBucket);
+        const output = await this.createS3Output(outputBucket);
+        const outPutPath = `${Path.parse(outPutKey).name}/`;
+
+        if (encodingOptions.encodeVideo) {
+            // const videoOptions = this.getVideoEncodingOption(encodingOption.videoOptions, encodingOption.fileInfo?.videoStream);
+            const videoOptions = encodingOptions.videoOptions;
+            const videoConfigurationsPromise = (videoOptions || []).map(option => {
+                return this.createH264VideoConfig(option.width, option.height, option.bitrate)
+            })
+            const videoConfigurations = await Promise.all(videoConfigurationsPromise);
+
+            for (const videoConfig of videoConfigurations) {
+                const videoStream = await this.createStream(encoding, input, inputKey, videoConfig);
+                //TODO: consider put generateThumbnailTrack option on each videoOptions 
+                if (encodingOptions.generateThumbnailTrack) {
+                    const filename = Path.parse(inputKey).name
+                    await this.createSprite(encoding.id || '', videoStream.id || '', `${filename}.jpg`, `${filename}.vtt`, output, outPutPath);
+                }
+                if (encodingOptions.drm) {
+                    const videoMuxingStream = await this.createFmp4MuxingDrm(encoding, videoStream);
+                    await this.createDrmConfig(encoding, videoMuxingStream, output, `${outPutPath}/video/${videoConfig.bitrate}`);
+                }
+                else {
+                    await this.createFmp4Muxing(encoding, output, `${outPutPath}/video/${videoConfig.bitrate}`, videoStream);
+                }
+            }
+        }
+
+        if (encodingOptions.encodeAudio) {
+            // const audioOptions = this.getAudioEncodingOption(encodingOptions.audioOptions, encodingOptions.fileInfo?.audioStream);
+            const audioOptions = encodingOptions.audioOptions;
+            const audioConfigurationsPromise = (audioOptions || []).map(option => {
+                return this.createAacAudioConfig(option.bitrate)
+            })
+
+            const audioConfigurations = await Promise.all(audioConfigurationsPromise);
+
+            for (const audioConfig of audioConfigurations) {
+                const audioStream = await this.createStream(encoding, input, inputKey, audioConfig);
+                if (encodingOptions.drm) {
+                    const audioMuxingStream = await this.createFmp4MuxingDrm(encoding, audioStream);
+                    await this.createDrmConfig(encoding, audioMuxingStream, output, `${outPutPath}/audio/${audioConfig.bitrate}`);
+                }
+                else {
+                    await this.createFmp4Muxing(encoding, output, `${outPutPath}/audio/${audioConfig.bitrate}`, audioStream);
+                }
+            }
+        }
+
+        const dashManifest = await this.createDefaultDashManifest(encoding, output, `${outPutPath}/`);
+        const hlsManifest = await this.createDefaultHlsManifest(encoding, output, `${outPutPath}/`);
+
+        const startEncodingRequest = new StartEncodingRequest({
+            manifestGenerator: ManifestGenerator.V2,
+            vodDashManifests: [this.buildManifestResource(dashManifest)],
+            vodHlsManifests: [this.buildManifestResource(hlsManifest)]
+        });
+
+        await this.executeEncoding(encoding, startEncodingRequest);
+
+        return "success"
+        // return await this.encodeHelper(encodingOption.bucket, key, outPutBucket, "", {
+        //     hasVideo: true,
+        //     hasAudio: false,
+        //     videoOptions: [{ width: 1280, height: 720, bitrate: 3000000 }],
+        //     thumbnailTrack: true
+        // })
         // const encoding = await this.createEncoding(key, 'let us see');
         // const input = await this.createS3Input(bucket);
         // const output = await this.createS3Output(outPutBucket);
@@ -79,6 +273,7 @@ class BitMovinEncode implements EncodingManager {
         const input = await this.createS3Input(bucket);
         const output = await this.createS3Output(outPutBucket);
 
+
         if (encodingOptions.hasVideo) {
             const videoConfigurationsPromise = (encodingOptions.videoOptions || []).map(option => {
                 return this.createH264VideoConfig(option.width, option.height, option.bitrate)
@@ -89,7 +284,7 @@ class BitMovinEncode implements EncodingManager {
                 const videoStream = await this.createStream(encoding, input, key, videoConfig);
                 if (encodingOptions.thumbnailTrack) {
                     const filename = Path.parse(key).name
-                    await this.createSprite(encoding.id || '', videoStream.id || '', `${filename}.jpg`, `${filename}.vtt`, output);
+                    await this.createSprite(encoding.id || '', videoStream.id || '', `${filename}.jpg`, `${filename}.vtt`, output, "new/");
                 }
                 await this.createFmp4Muxing(encoding, output, `video/${videoConfig.bitrate}`, videoStream);
             }
@@ -122,11 +317,11 @@ class BitMovinEncode implements EncodingManager {
         return '';
     }
 
-    async createSprite(encodingId: string, streamId: string, jpgName: string, vttName: string, output: S3Output) {
+    async createSprite(encodingId: string, streamId: string, jpgName: string, vttName: string, output: S3Output, outputPath: string) {
         const spriteConfig = new Sprite({
             spriteName: jpgName,
             vttName: vttName,
-            outputs: [this.buildEncodingOutput(output, `/`)],
+            outputs: [this.buildEncodingOutput(output, outputPath)],
             distance: 2,
             width: 320
         });
@@ -313,6 +508,31 @@ class BitMovinEncode implements EncodingManager {
             segmentLength: 4.0,
             outputs: [this.buildEncodingOutput(output, outputPath)],
             streams: [new MuxingStream({ streamId: stream.id })]
+        });
+
+        return this.bitMovinClient.encoding.encodings.muxings.fmp4.create(encoding.id!, muxing);
+    }
+
+    /**
+     * Creates a fragmented MP4 muxing. This will split the output into continuously numbered segments
+     * of a given length for adaptive streaming. However, the unencrypted segments will not be written
+     * to a permanent storage as there's no output defined for the muxing. Instead, an output needs to
+     * be defined for the DRM configuration resource which will later be added to this muxing.
+     *
+     * <p>API endpoint:
+     * https://bitmovin.com/docs/encoding/api-reference/all#/Encoding/PostEncodingEncodingsMuxingsFmp4ByEncodingId
+     *
+     * @param encoding The encoding to which the muxing will be added
+     * @param stream The stream to be muxed
+     */
+    async createFmp4MuxingDrm(encoding: Encoding, stream: Stream): Promise<Fmp4Muxing> {
+        const muxingStream = new MuxingStream({
+            streamId: stream.id
+        });
+
+        const muxing = new Fmp4Muxing({
+            streams: [muxingStream],
+            segmentLength: 4
         });
 
         return this.bitMovinClient.encoding.encodings.muxings.fmp4.create(encoding.id!, muxing);

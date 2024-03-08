@@ -14,7 +14,11 @@ const Encoder = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    key: file.name
+                    fileName: file.name,
+                    encodeAudio: true,
+                    encodeVideo: true,
+                    generateThumbnailTrack: true,
+                    drm: true,
                 })
             })
         }
